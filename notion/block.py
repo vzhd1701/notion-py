@@ -714,7 +714,7 @@ class CollectionViewBlock(MediaBlock):
 
     @property
     def collection(self):
-        collection_id = self.get("collection_id")
+        collection_id = self.get("format.collection_pointer.id")
         if not collection_id:
             return None
         if not hasattr(self, "_collection"):
@@ -725,7 +725,7 @@ class CollectionViewBlock(MediaBlock):
     def collection(self, val):
         if hasattr(self, "_collection"):
             del self._collection
-        self.set("collection_id", val.id)
+        self.set("format.collection_pointer.id", val.id)
 
     @property
     def views(self):
