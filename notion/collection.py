@@ -237,6 +237,9 @@ class Collection(Record):
         return CollectionQuery(self, self._get_a_collection_view(), **kwargs).execute()
 
     def get_rows(self, **kwargs):
+        if "limit" not in kwargs:
+            kwargs["limit"] = -1
+
         return self.query(**kwargs)
 
     def _convert_diff_to_changelist(self, difference, old_val, new_val):
