@@ -415,15 +415,12 @@ class Block(Record):
                 )
             )
 
+        # Parent block can be a collection, which will cause API error on refresh
+        refresh_blocks = [self, self.parent, target_block, target_block.parent]
+        refresh_blocks_ids = [b.id for b in refresh_blocks if isinstance(b, Block)]
+
         # update the local block cache to reflect the updates
-        self._client.refresh_records(
-            block=[
-                self.id,
-                self.get("parent_id"),
-                target_block.id,
-                target_block.get("parent_id"),
-            ]
-        )
+        self._client.refresh_records(block=refresh_blocks_ids)
 
 
 class DividerBlock(Block):
