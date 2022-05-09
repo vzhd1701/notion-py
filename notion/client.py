@@ -5,7 +5,7 @@ import uuid
 
 from requests import Session, HTTPError
 from requests.cookies import cookiejar_from_dict
-from urllib.parse import unquote, urljoin
+from urllib.parse import urljoin
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 from getpass import getpass
@@ -132,9 +132,10 @@ class NotionClient(object):
         self.current_user = self.get_user(list(records["notion_user"].keys())[0])
         self.current_space = self.get_space(list(records["space"].keys())[0])
 
-        self.session.headers.update({"x-notion-active-user-header": 
-            json.loads(unquote(self.session.cookies.get("notion_users")))[1]})
-        
+        self.session.headers.update(
+            {"x-notion-active-user-header": self.current_user.id}
+        )
+
         return records
 
     def get_email_uid(self):
