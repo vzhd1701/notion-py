@@ -5,7 +5,7 @@ import uuid
 
 from requests import Session, HTTPError
 from requests.cookies import cookiejar_from_dict
-from urllib.parse import urljoin
+from urllib.parse import unquote, urljoin
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 from getpass import getpass
@@ -53,6 +53,7 @@ def create_session(client_specified_retry=None):
         )
     adapter = HTTPAdapter(max_retries=retry)
     session.mount("https://", adapter)
+    session.headers.update({"content-type": "application/json"})
     return session
 
 
@@ -130,6 +131,10 @@ class NotionClient(object):
         self._store.store_recordmap(records)
         self.current_user = self.get_user(list(records["notion_user"].keys())[0])
         self.current_space = self.get_space(list(records["space"].keys())[0])
+
+        self.session.headers.update({"x-notion-active-user-header": 
+            json.loads(unquote(self.session.cookies.get("notion_users")))[1]})
+        
         return records
 
     def get_email_uid(self):
@@ -140,7 +145,6 @@ class NotionClient(object):
         }
 
     def set_user_by_uid(self, user_id):
-        self.session.headers.update({"x-notion-active-user-header": user_id})
         self._update_user_info()
 
     def set_user_by_email(self, email):
@@ -158,15 +162,15 @@ class NotionClient(object):
         records = self._update_user_info()
         return [self.get_block(bid) for bid in records["block"].keys()]
 
-    def get_record_data(self, table, id, force_refresh=False):
-        return self._store.get(table, id, force_refresh=force_refresh)
+    def get_record_data(self, table, id, force_refresh=False, limit=100):
+        return self._store.get(table, id, force_refresh=force_refresh, limit=limit)
 
-    def get_block(self, url_or_id, force_refresh=False):
+    def get_block(self, url_or_id, force_refresh=False, limit=100):
         """
         Retrieve an instance of a subclass of Block that maps to the block/page identified by the URL or ID passed in.
         """
         block_id = extract_id(url_or_id)
-        block = self.get_record_data("block", block_id, force_refresh=force_refresh)
+        block = self.get_record_data("block", block_id, force_refresh=force_refresh, limit=limit)
         if not block:
             return None
         if block.get("parent_table") == "collection":
@@ -306,11 +310,11 @@ class NotionClient(object):
         """
         return hasattr(self, "_transaction_operations")
 
-    def search_pages_with_parent(self, parent_id, search=""):
+    def search_pages_with_parent(self, parent_id, search="", limit=100):
         data = {
             "query": search,
             "parentId": parent_id,
-            "limit": 10000,
+            "limit": limit,
             "spaceId": self.current_space.id,
         }
         response = self.post("searchPagesWithParent", data).json()
