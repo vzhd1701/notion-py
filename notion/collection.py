@@ -395,11 +395,7 @@ class CollectionQuery(object):
         }
 
         if self.limit == -1:
-            # fetch remote total 
-            result = self._client.query_collection(
-                **kwargs
-            )
-            self.limit = result.get("total",-1)
+            self.limit = self._get_total_rows()
 
         kwargs['limit'] = self.limit
 
@@ -410,6 +406,36 @@ class CollectionQuery(object):
             ),
             self,
         )
+
+    def _get_total_rows(self):
+        data = {
+            "collection": {
+                "id": self.collection.id,
+                "spaceId": self._client.current_space.id,
+            },
+            "collectionView": {
+                "id": self.collection_view.id,
+                "spaceId": self._client.current_space.id,
+            },
+            "loader": {
+                "reducers": {
+                    "table:uncategorized:title:count": {
+                        "aggregation": {"aggregator": "count", "property": "title"},
+                        "type": "aggregation",
+                    }
+                },
+                "searchQuery": "",
+                "sort": [],
+                "userTimeZone": str(get_localzone()),
+                "type": "reducer",
+            },
+        }
+
+        response = self._client.post("queryCollection", data).json()
+
+        return response["result"]["reducerResults"]["table:uncategorized:title:count"][
+            "aggregationResult"
+        ]["value"]
 
 
 class CollectionRowBlock(PageBlock):
