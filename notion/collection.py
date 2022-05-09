@@ -176,13 +176,14 @@ class Collection(Record):
         Check and update the prop dict with new values
         """
         schema_update = False
-        current_options = list([p["value"].lower() for p in prop["options"]])
+        prop_options = prop.setdefault("options", [])
+        current_options = list([p["value"].lower() for p in prop_options])
         if not isinstance(values, list):
             values = [values]
         for v in values:
             if v and v.lower() not in current_options:
                 schema_update = True
-                prop["options"].append(NotionSelect(v).to_dict())
+                prop_options.append(NotionSelect(v).to_dict())
         return schema_update, prop
 
     def get_schema_property(self, identifier):
