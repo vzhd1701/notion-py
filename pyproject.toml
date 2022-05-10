@@ -1,0 +1,25 @@
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "notion-vzhd1701-fork"
+version = "0.0.29"
+description = "Fork of https://github.com/jamalex/notion-py"
+authors = ["Jamie Alexandre <jamalex@gmail.com>"]
+maintainers = ["vzhd1701 <vzhd1701@gmail.com>"]
+license = "MIT"
+repository = "https://github.com/vzhd1701/notion-py"
+packages = [
+    { include = "notion" },
+]
+
+[tool.poetry.dependencies]
+python = "^3.6"
+requests = "^2.27.1"
+commonmark = "^0.9.1"
+bs4 = "^0.0.1"
+tzlocal = "^4.2"
+python-slugify = "^6.1.2"
+dictdiffer = "^0.9.0"
+cached-property = "^1.5.2"
