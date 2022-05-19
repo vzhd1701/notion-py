@@ -198,17 +198,30 @@ class Collection(Record):
                 return prop
         return None
 
-    def add_row(self, update_views=True, **kwargs):
+    def add_row(self, **columns):
+        return self.add_row_block(columns=columns)
+
+    def add_row_block(
+        self, update_views=True, row_class=None, properties=None, columns=None
+    ):
         """
         Create a new empty CollectionRowBlock under this collection, and return the instance.
         """
 
+        row_class = row_class or CollectionRowBlock
+
         row_id = self._client.create_record("block", self, type="page")
-        row = CollectionRowBlock(self._client, row_id)
+        row = row_class(self._client, row_id)
+
+        columns = {} if columns is None else columns
+        properties = {} if properties is None else properties
 
         with self._client.as_atomic_transaction():
-            for key, val in kwargs.items():
+            for key, val in properties.items():
                 setattr(row, key, val)
+
+            for key, val in columns.items():
+                setattr(row.columns, key, val)
 
             if update_views:
                 # make sure the new record is inserted at the end of each view
@@ -441,6 +454,28 @@ class CollectionQuery(object):
         ]["value"]
 
 
+class CollectionRowBlockColumns(object):
+    def __init__(self, parent):
+        self.__dict__["_parent"] = parent
+
+    def __getattr__(self, attname):
+        return self._parent.get_property(attname)
+
+    def __getitem__(self, attname):
+        return self._parent.get_property(attname)
+
+    def __setattr__(self, attname, value):
+        if attname in self._parent._get_property_slugs():
+            self._parent.set_property(attname, value)
+        elif slugify(attname) in self._parent._get_property_slugs():
+            self._parent.set_property(slugify(attname), value)
+        else:
+            raise AttributeError(f"Column not found: '{attname}'")
+
+    def __dir__(self):
+        return self._parent._get_property_slugs() + super().__dir__()
+
+
 class CollectionRowBlock(PageBlock):
     @property
     def is_template(self):
@@ -450,6 +485,10 @@ class CollectionRowBlock(PageBlock):
     def collection(self):
         return self._client.get_collection(self.get("parent_id"))
 
+    @cached_property
+    def columns(self):
+        return CollectionRowBlockColumns(self)
+
     @property
     def schema(self):
         return [
@@ -458,33 +497,13 @@ class CollectionRowBlock(PageBlock):
             if prop["type"] not in ["formula", "rollup"]
         ]
 
-    def __getattr__(self, attname):
-        return self.get_property(attname)
-
-    def __setattr__(self, attname, value):
-        if attname.startswith("_"):
-            # we only allow setting of new non-property attributes that start with "_"
-            super().__setattr__(attname, value)
-        elif attname in self._get_property_slugs():
-            self.set_property(attname, value)
-        elif slugify(attname) in self._get_property_slugs():
-            self.set_property(slugify(attname), value)
-        elif hasattr(self, attname):
-            super().__setattr__(attname, value)
-        else:
-            raise AttributeError("Unknown property: '{}'".format(attname))
-
     def _get_property_slugs(self):
         slugs = [prop["slug"] for prop in self.schema]
         if "title" not in slugs:
             slugs.append("title")
         return slugs
 
-    def __dir__(self):
-        return self._get_property_slugs() + super().__dir__()
-
     def get_property(self, identifier):
-
         prop = self.collection.get_schema_property(identifier)
         if prop is None:
             raise AttributeError(
@@ -496,7 +515,6 @@ class CollectionRowBlock(PageBlock):
         return self._convert_notion_to_python(val, prop)
 
     def _convert_diff_to_changelist(self, difference, old_val, new_val):
-
         changed_props = set()
         changes = []
         remaining = []
@@ -528,7 +546,6 @@ class CollectionRowBlock(PageBlock):
         )
 
     def _convert_notion_to_python(self, val, prop):
-
         if prop["type"] in ["title", "text"]:
             val = notion_to_markdown(val) if val else ""
         if prop["type"] in ["number"]:
@@ -586,14 +603,12 @@ class CollectionRowBlock(PageBlock):
         return val
 
     def get_all_properties(self):
-        allprops = {}
-        for prop in self.schema:
-            propid = slugify(prop["name"])
-            allprops[propid] = self.get_property(propid)
-        return allprops
+        return {
+            prop["slug"]: self.get_property(prop["slug"])
+            for prop in self.schema
+        }
 
     def set_property(self, identifier, val):
-
         prop = self.collection.get_schema_property(identifier)
         if prop is None:
             raise AttributeError(
@@ -611,7 +626,6 @@ class CollectionRowBlock(PageBlock):
         self.set(path, val)
 
     def _convert_python_to_notion(self, val, prop, identifier="<unknown>"):
-
         if prop["type"] in ["title", "text"]:
             if not val:
                 val = ""
@@ -705,6 +719,17 @@ class CollectionRowBlock(PageBlock):
             return prop["type"], val
 
         return ["properties", prop["id"]], val
+
+    def update(self, properties=None, columns=None):
+        columns = {} if columns is None else columns
+        properties = {} if properties is None else properties
+
+        with self._client.as_atomic_transaction():
+            for key, val in properties.items():
+                setattr(self, key, val)
+
+            for key, val in columns.items():
+                setattr(self.columns, key, val)
 
     def remove(self):
         # Mark the block as inactive
