@@ -10,7 +10,6 @@ DATA_DIR = os.environ.get(
     "NOTION_DATA_DIR", str(Path(os.path.expanduser("~")).joinpath(".notion-py"))
 )
 CACHE_DIR = str(Path(DATA_DIR).joinpath("cache"))
-LOG_FILE = str(Path(DATA_DIR).joinpath("notion.log"))
 
 try:
     os.makedirs(DATA_DIR)
