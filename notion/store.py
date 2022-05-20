@@ -12,7 +12,6 @@ from pathlib import Path
 from tzlocal import get_localzone
 
 from .logger import logger
-from .settings import CACHE_DIR
 from .utils import extract_id
 
 
@@ -74,17 +73,24 @@ class Callback(object):
 
 
 class RecordStore(object):
-    def __init__(self, client, cache_key=None):
+    def __init__(self, client, cache_key=None, cache_path=None):
         self._mutex = Lock()
         self._client = client
         self._cache_key = cache_key
+        self._cache_path = cache_path
         self._values = defaultdict(lambda: defaultdict(dict))
         self._role = defaultdict(lambda: defaultdict(str))
         self._collection_row_ids = {}
         self._callbacks = defaultdict(lambda: defaultdict(list))
         self._records_to_refresh = {}
         self._pages_to_refresh = []
+
         with self._mutex:
+            if self._cache_key:
+                if not self._cache_path or not isinstance(self._cache_path, Path):
+                    raise ValueError("You must provide directory for cache")
+                self._cache_path.mkdir(parents=True, exist_ok=True)
+
             self._load_cache()
 
     def _get(self, table, id):
@@ -113,9 +119,7 @@ class RecordStore(object):
             callbacks.remove(callback_or_callback_id_prefix)
 
     def _get_cache_path(self, attribute):
-        return str(
-            Path(CACHE_DIR).joinpath("{}{}.json".format(self._cache_key, attribute))
-        )
+        return self._cache_path / "{}{}.json".format(self._cache_key, attribute)
 
     def _load_cache(self, attributes=("_values", "_role", "_collection_row_ids")):
         if not self._cache_key:

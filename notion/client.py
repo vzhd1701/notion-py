@@ -71,6 +71,7 @@ class NotionClient(object):
         start_monitoring=False,
         enable_caching=False,
         cache_key=None,
+        cache_path=None,
         email=None,
         password=None,
         client_specified_retry=None,
@@ -83,7 +84,7 @@ class NotionClient(object):
 
         if enable_caching:
             cache_key = cache_key or hashlib.sha256(token_v2.encode()).hexdigest()
-            self._store = RecordStore(self, cache_key=cache_key)
+            self._store = RecordStore(self, cache_key=cache_key, cache_path=cache_path)
         else:
             self._store = RecordStore(self)
         if monitor:
