@@ -6,7 +6,6 @@ import uuid
 from requests import Session, HTTPError
 from requests.cookies import cookiejar_from_dict
 from urllib.parse import urljoin
-from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 from getpass import getpass
 
@@ -26,6 +25,9 @@ from .space import Space
 from .store import RecordStore
 from .user import User
 from .utils import extract_id, now
+from .utils_ssl import HTTPAdapterTLS
+
+CHROME = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.7113.93 Safari/537.36"
 
 
 def create_session(client_specified_retry=None):
@@ -51,9 +53,10 @@ def create_session(client_specified_retry=None):
                 "DELETE",
             ),
         )
-    adapter = HTTPAdapter(max_retries=retry)
+    adapter = HTTPAdapterTLS(max_retries=retry)
     session.mount("https://", adapter)
-    session.headers.update({"content-type": "application/json"})
+    session.headers.update({"User-Agent": CHROME})
+    session.headers.update({"Content-Type": "application/json"})
     return session
 
 
