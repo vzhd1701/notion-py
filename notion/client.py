@@ -2,6 +2,7 @@ import hashlib
 import json
 import re
 import uuid
+import time
 
 from requests import Session, HTTPError
 from requests.cookies import cookiejar_from_dict
@@ -81,7 +82,14 @@ class NotionClient(object):
     ):
         self.session = create_session(client_specified_retry)
         if token_v2:
-            self.session.cookies = cookiejar_from_dict({"token_v2": token_v2})
+            self.session.cookies.set(
+                "token_v2",
+                token_v2,
+                domain=".www.notion.so",
+                discard=False,
+                expires=int(time.time()) + 3600 * 24 * 365,
+                secure=True,
+            )
         else:
             self._set_token(email=email, password=password)
 
