@@ -9,6 +9,7 @@ from requests.cookies import cookiejar_from_dict
 from urllib.parse import urljoin
 from requests.packages.urllib3.util.retry import Retry
 from getpass import getpass
+from ratelimit import limits, sleep_and_retry
 
 from .block import Block, BLOCK_TYPES
 from .collection import (
@@ -29,6 +30,10 @@ from .utils import extract_id, now
 from .utils_ssl import HTTPAdapterTLS
 
 CHROME = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.7113.93 Safari/537.36"
+
+
+class HTTPRateLimitException(Exception):
+    pass
 
 
 def create_session(client_specified_retry=None):
@@ -262,7 +267,15 @@ class NotionClient(object):
         row_ids = [row.id for row in self.get_collection(collection_id).get_rows()]
         self._store.set_collection_rows(collection_id, row_ids)
 
+    @sleep_and_retry
+    @limits(calls=3000, period=60)
     def post(self, endpoint, data):
+        while True:
+            try:
+                return self._post(endpoint, data)
+            except HTTPRateLimitException:
+                time.sleep(1)
+    def _post(self, endpoint, data):
         """
         All API requests on Notion.so are done as POSTs (except the websocket communications).
         """
@@ -279,6 +292,9 @@ class NotionClient(object):
                     "message", "There was an error (400) submitting the request."
                 )
             )
+        if response.status_code == 429:
+            raise HTTPRateLimitException
+
         response.raise_for_status()
         return response
 
