@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "notion-vzhd1701-fork"
-version = "0.0.34"
+version = "0.0.35"
 description = "Fork of https://github.com/jamalex/notion-py"
 authors = ["Jamie Alexandre <jamalex@gmail.com>"]
 maintainers = ["vzhd1701 <vzhd1701@gmail.com>"]
