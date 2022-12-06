@@ -12,3 +12,7 @@ dist/
 .env
 .venv
 Pipfile
+
+### Custom ###
+.stuff/
+.local/
