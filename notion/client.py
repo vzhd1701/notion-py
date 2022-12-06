@@ -409,6 +409,7 @@ class NotionClient(object):
             "created_time": now(),
             "parent_id": parent.id,
             "parent_table": parent._table,
+            "space_id": self.current_space.id,
         }
 
         args.update(kwargs)
