@@ -38,7 +38,9 @@ def create_custom_urllib3_context():
     https://stackoverflow.com/questions/64967706/python-requests-https-code-403-without-but-code-200-when-using-burpsuite
     """
 
-    context = create_urllib3_context()
+    CIPHERS = ('DEFAULT:@SECLEVEL=2')
+
+    context = create_urllib3_context(ciphers=CIPHERS)
     set_minimum_tls_version_1_2(context)
     context.options &= ~ssl.OP_NO_TICKET
 
