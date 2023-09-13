@@ -21,7 +21,7 @@ class Space(Record):
 
     @property
     def users(self):
-        user_ids = [permission["user_id"] for permission in self.get("permissions")]
+        user_ids = [permission["user_id"] for permission in self.get("permissions") if permission.get("user_id")]
         self._client.refresh_records(notion_user=user_ids)
         return [self._client.get_user(user_id) for user_id in user_ids]
 
